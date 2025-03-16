@@ -30,12 +30,13 @@ class q1b_problem:
     @log_function
     def getStartState(self):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.startingGameState
 
     @log_function
     def isGoalState(self, state):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        x,y = state.getPacmanPosition()
+        return state.hasFood(x, y)
 
     @log_function
     def getSuccessors(self, state):
@@ -50,5 +51,12 @@ class q1b_problem:
          cost of expanding to that successor
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        successors = []
+        actions = state.getLegalPacmanActions()
+        
+        for action in actions:
+            successor = state.generatePacmanSuccessor(action)
+            successors.append((successor, action, 1))
+        
+        return successors
 

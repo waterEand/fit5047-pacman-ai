@@ -34,21 +34,23 @@ class q1a_problem:
     @log_function
     def getStartState(self):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        return self.startingGameState
 
 
     @log_function
     def isGoalState(self, state):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        return state.isWin()
 
     @log_function
     def getSuccessors(self, state):
         """
         Returns successor states, the actions they require, and a cost of 1.
 
-         As noted in search.py:
-             For a given state, this should return a list of triples,
+        As noted in search.py:
+            For a given state, this should return a list of triples,
          (successor, action, stepCost), where 'successor' is a
          successor to the current state, 'action' is the action
          required to get there, and 'stepCost' is the incremental
@@ -56,6 +58,12 @@ class q1a_problem:
         """
         # ------------------------------------------
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-
+        
+        successors = []
+        actions = state.getLegalPacmanActions()
+        
+        for action in actions:
+            successor = state.generatePacmanSuccessor(action)
+            successors.append((successor, action, 1))
+        
+        return successors

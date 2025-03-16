@@ -24,19 +24,107 @@ def q1b_solver(problem: q1b_problem):
 class AStarData:
     # YOUR CODE HERE
     def __init__(self):
-        pass
+        self.queue = util.PriorityQueue()
+        self.start_state = None
+        self.visited = set()
+        self.actions = []
+        self.food_positions = None
 
 def astar_initialise(problem: q1b_problem):
     # YOUR CODE HERE
     astarData = AStarData()
-    astarData.x = 'stuff'
-    astarData.y = 123
+    state = problem.getStartState()
+    astarData.start_state = state
+    
+    food_grid = state.getFood()
+    astarData.food_positions = tuple((x, y) for x in range(food_grid.width) for y in range(food_grid.height) if food_grid[x][y])
+
+    astarData.queue.push((state, [], 0), astar_heuristic(state.getPacmanPosition(), astarData.food_positions))
+    
     return astarData
 
 def astar_loop_body(problem: q1b_problem, astarData: AStarData):
     # YOUR CODE HERE
-    util.raiseNotDefined()  # Delete this line
+    
+    if astarData.queue.isEmpty():
+        # print('Empty!!')
+        return True, []
 
-def astar_heuristic(current, goals):
+    state, actions, cost = astarData.queue.pop()
+
+    pacman_position = state.getPacmanPosition()
+
+    if pacman_position in astarData.visited:
+        return False, None
+    
+    astarData.visited.add(pacman_position)
+    
+    # if problem.isGoalState(state): # 这句话会变成False，可能是因为pacman在successor那里已经吃到了，自动更新为False
+    if pacman_position in astarData.food_positions:
+        # print("----------- found one! ------------")
+        return  True, actions
+
+    for successor, action, step_cost in problem.getSuccessors(state):
+        # print(successor.explored)
+        if successor.getPacmanPosition() not in astarData.visited:
+            new_cost = cost + step_cost
+            
+            priority = new_cost + astar_heuristic(successor.getPacmanPosition(), astarData.food_positions)
+            astarData.queue.update((successor, actions + [action], new_cost), priority) # push
+    
+    return False, None
+
+# def astar_loop_body(problem: q1b_problem, astarData: AStarData):
+#     # YOUR CODE HERE
+#     if astarData.queue.isEmpty():
+#         # print('Empty!!')
+#         # return True, astarData.actions  # 应对有些food吃不到的情况 
+#         return True, []
+
+#     state, actions, cost, remain_food_positions = astarData.queue.pop()
+
+#     pacman_position = state.getPacmanPosition()
+
+#     if (pacman_position, remain_food_positions) in astarData.visited:
+#         return False, None
+    
+#     astarData.visited.add((pacman_position, remain_food_positions))
+    
+#     # if pacman_position in food_positions:
+#     #     # print("found one!")
+#     #     astarData.actions = actions # 应对有些food吃不到的情况
+    
+#     # 这里必须要用局部变量 remain_food_positions！！！
+#     # 否则A* 搜索会认为 其他路径也已经吃掉这个食物点，从而导致搜索提早终止。
+#     remain_food_positions = tuple(pos for pos in remain_food_positions if pos != pacman_position)
+    
+#     if not remain_food_positions:
+#         print('All food found.')
+        
+#         return True, actions
+    
+#     # print(state.explored)
+
+#     # Expand the current node
+#     for successor, action, step_cost in problem.getSuccessors(state):
+#         # print(successor.explored)
+#         if (successor.getPacmanPosition(), remain_food_positions) not in astarData.visited:
+#             new_cost = cost + step_cost
+            
+#             # this line reduces # of node expansions.
+#             new_remaining_food = tuple(pos for pos in remain_food_positions if pos != successor.getPacmanPosition())
+            
+#             priority = new_cost + astar_heuristic(successor.getPacmanPosition(), new_remaining_food)
+#             # astarData.queue.push((successor, actions + [action], new_cost, remain_food_positions), priority)
+#             astarData.queue.update((successor, actions + [action], new_cost, new_remaining_food), priority)
+    
+#     return False, None
+
+def astar_heuristic(pacman_position, food_positions):
     # YOUR CODE HERE
-    return 0
+    if not food_positions:
+        return 0
+    return min(util.manhattanDistance(pacman_position, food) for food in food_positions)
+
+
+# python pacman.py -l layouts/q1b_closed.lay -p SearchAgent -a fn=q1b_solver,prob=q1b_problem --timeout=5
