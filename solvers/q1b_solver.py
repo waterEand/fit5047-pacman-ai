@@ -112,8 +112,9 @@ def astar_loop_body(problem: q1b_problem, astarData: AStarData):
 def astar_heuristic(pacman_position, bfs_distances):
     # YOUR CODE HERE        
     
-    return bfs_distances.get(pacman_position, float('inf')) 
-
+    if pacman_position in bfs_distances:
+        return bfs_distances[pacman_position]
+    return min(util.manhattanDistance(pacman_position, food) for food in list(bfs_distances.keys())) 
 
 def precompute_bfs(state, food_positions):
     """
@@ -121,13 +122,18 @@ def precompute_bfs(state, food_positions):
     """
     walls = state.getWalls()
     width, height = walls.width, walls.height
-    bfs_distances = {}  # 存储所有点到最近 food dot 的距离
+    bfs_distances = {}  
     queue = util.Queue()
-
+    
     for food in food_positions:
+        x, y = food
+        if walls[x-1][y] and walls[x][y-1] and walls[x][y+1] and walls[x+1][y]:
+            # print('not available')
+            continue
+            # bfs_distances[food] = float('inf')
         bfs_distances[food] = 0
         queue.push(food)
-
+    
     while not queue.isEmpty():
         x, y = queue.pop()
         current_dist = bfs_distances[(x, y)]
@@ -189,4 +195,4 @@ def precompute_bfs(state, food_positions):
     
 #     return False, None
 
-# python pacman.py -l layouts/q1b_closed.lay -p SearchAgent -a fn=q1b_solver,prob=q1b_problem --timeout=5
+# python pacman.py -l layouts/q1b_trickyCorners.lay -p SearchAgent -a fn=q1b_solver,prob=q1b_problem --timeout=5

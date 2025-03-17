@@ -28,7 +28,7 @@ class AStarData:
         self.start_state = None
         # self.visited = set()
         self.food_positions = None
-        self.g_values = None
+        self.g_values = {}
         self.bfs_distances = None
 
 def astar_initialise(problem: q1a_problem):
@@ -44,9 +44,9 @@ def astar_initialise(problem: q1a_problem):
     astarData.bfs_distances = precompute_bfs(state, astarData.food_positions)  # 计算 BFS 最短路径
     
     # 最少cost 有效减少node expansion
-    astarData.g_values = {state.getPacmanPosition(): 0}
+    astarData.g_values[state.getPacmanPosition()] = 0
     
-    astarData.queue.push((state, [], 0), astar_heuristic(state.getPacmanPosition(), astarData.bfs_distances))
+    astarData.queue.update((state, [], 0), astar_heuristic(state.getPacmanPosition(), astarData.bfs_distances))
     # astarData.queue.push((state, [], 0), astar_heuristic(state.getPacmanPosition(), astarData.food_positions))
     
     return astarData
@@ -81,7 +81,7 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
         if successor_position not in astarData.g_values or new_cost < astarData.g_values[successor_position]:
             priority = new_cost + astar_heuristic(successor_position, astarData.bfs_distances)
             # priority = new_cost + astar_heuristic(successor_position, astarData.food_positions)
-            astarData.queue.push((successor, actions + [action], new_cost), priority)
+            astarData.queue.update((successor, actions + [action], new_cost), priority)
             astarData.g_values[successor_position] = new_cost 
             
     return False, None
@@ -98,11 +98,11 @@ def astar_heuristic(pacman_position, bfs_distances):
 
 def precompute_bfs(state, dot_position):
     """
-    预计算 BFS，计算从 dot 到所有可达位置的最短路径长度。
+    预先计算每个点到food的距离，考虑wall
     """
     walls = state.getWalls()
     width, height = walls.width, walls.height
-    bfs_distances = {dot_position: 0}  # 存储 dot 到各个位置的最短路径
+    bfs_distances = {dot_position: 0}  
     queue = util.Queue()
     queue.push(dot_position)
 
@@ -110,12 +110,11 @@ def precompute_bfs(state, dot_position):
         x, y = queue.pop()
         current_dist = bfs_distances[(x, y)]
 
-        # 遍历四个方向
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx, ny = x + dx, y + dy
 
-            if 0 <= nx < width and 0 <= ny < height and not walls[nx][ny]:  # 确保没有墙
-                if (nx, ny) not in bfs_distances:  # 避免重复访问
+            if 0 <= nx < width and 0 <= ny < height and not walls[nx][ny]:  
+                if (nx, ny) not in bfs_distances: 
                     bfs_distances[(nx, ny)] = current_dist + 1
                     queue.push((nx, ny))
 
