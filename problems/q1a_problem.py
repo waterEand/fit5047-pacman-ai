@@ -42,7 +42,7 @@ class q1a_problem:
     def isGoalState(self, state):
         "*** YOUR CODE HERE ***"
         
-        return state.isWin()
+        return state.getNumFood() == 0
 
     @log_function
     def getSuccessors(self, state):
