@@ -304,11 +304,11 @@ def prim_mst(food_positions):
 #     return prim_mst(all_positions)
 
 
-def precompute_bfs(state, food_positions):
+def precompute_bfs(gameState, food_positions):
     """
     预先计算每个点到food的距离，考虑wall
     """
-    walls = state.getWalls()
+    walls = gameState.getWalls()
     width, height = walls.width, walls.height
     bfs_distances = {}  
     queue = util.Queue()
@@ -335,5 +335,6 @@ def precompute_bfs(state, food_positions):
                     queue.push((nx, ny))
 
     return bfs_distances
+
 
 # python pacman.py -l layouts/q1c_trickySearch.lay -p SearchAgent -a fn=q1c_solver,prob=q1c_problem --timeout=10
