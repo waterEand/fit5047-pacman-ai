@@ -173,7 +173,7 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
             successor_position = successor.getPacmanPosition()
             if successor_position not in astarData.visited:
                 new_cost = cost + step_cost
-                priority = new_cost + astar_heuristic(successor_position, astarData.food_position)
+                priority = astar_heuristic(successor_position, astarData.food_position)
                 astarData.queue.push((successor, actions + [action], new_cost), priority)
             
     return False, None
