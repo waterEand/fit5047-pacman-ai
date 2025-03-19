@@ -157,7 +157,9 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
         return True, []  # No solution found
     
     state, actions, cost = astarData.queue.pop()
-    if problem.isGoalState(state):
+    pacman_position = state.getPacmanPosition()
+    # if problem.isGoalState(state):
+    if pacman_position == astarData.food_position:
             return True, actions
     
     pacman_position = state.getPacmanPosition()
@@ -171,7 +173,7 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
             if successor_position not in astarData.visited:
                 new_cost = cost + step_cost
                 priority = new_cost + astar_heuristic(successor_position, astarData.food_position)
-                astarData.queue.update((successor, actions + [action], new_cost), priority)
+                astarData.queue.push((successor, actions + [action], new_cost), priority)
             
     return False, None
 
