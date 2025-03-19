@@ -134,6 +134,7 @@ class AStarData:
 
 def astar_initialise(problem: q1a_problem):
     """ 初始化 A* 搜索 """
+    # time.sleep(1)
     astarData = AStarData()
     state = problem.getStartState()
     astarData.start_state = state

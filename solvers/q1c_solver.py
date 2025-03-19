@@ -57,7 +57,7 @@ def astar_search(problem: q1c_problem, heuristic, start_time, time_limit):
             best_solution = actions
         
         if len(remaining_food) == 0:
-            print("ALL FOUND!!!!!!!!")
+            # print("ALL FOUND!!!!!!!!")
             return actions  # 吃完所有 food
 
         successors = problem.getSuccessors(state)
@@ -68,7 +68,7 @@ def astar_search(problem: q1c_problem, heuristic, start_time, time_limit):
 
             new_remaining_food = frozenset(pos for pos in remaining_food if pos != successor_position)
 
-            priority = heuristic(successor_position, new_remaining_food) # 不需要加上new_cost了！！因为food分布均匀
+            priority = 0.1 * new_cost + heuristic(successor_position, new_remaining_food) # 不需要加上new_cost了！！因为food分布均匀
             # priority = new_cost
 
             queue.push((successor, actions + [action], new_cost, new_remaining_food), priority)
