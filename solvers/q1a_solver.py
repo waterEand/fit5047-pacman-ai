@@ -129,7 +129,7 @@ class AStarData:
     def __init__(self):
         self.queue = util.PriorityQueue()
         self.start_state = None
-        self.visited = set()
+        self.visited = {}
         self.food_position = None
 
 def astar_initialise(problem: q1a_problem):
@@ -149,6 +149,7 @@ def astar_initialise(problem: q1a_problem):
     # start_pos = state.getPacmanPosition()
     
     astarData.queue.push((state, [], 0), astar_heuristic(state.getPacmanPosition(), astarData.food_position))
+    # astarData.queue.push((state, [], 0), bfs_distance(problem, state, astarData.food_position))
     
     return astarData
 
@@ -162,25 +163,48 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
     # if problem.isGoalState(state):
     if pacman_position == astarData.food_position:
             return True, actions
+        
+    if pacman_position in astarData.visited and astarData.visited[pacman_position] <= cost:
+        return False, None  # 直接跳过
     
-    pacman_position = state.getPacmanPosition()
+    astarData.visited[pacman_position] = cost  # 更新最小 cost
     
-    if not pacman_position in astarData.visited:
+    # if not pacman_position in astarData.visited:
     
-        astarData.visited.add(pacman_position)
+    #     astarData.visited.add(pacman_position)
 
-        for successor, action, step_cost in problem.getSuccessors(state):
-            successor_position = successor.getPacmanPosition()
-            if successor_position not in astarData.visited:
-                new_cost = cost + step_cost
-                priority = astar_heuristic(successor_position, astarData.food_position)
-                astarData.queue.push((successor, actions + [action], new_cost), priority)
-            
+    for successor, action, step_cost in problem.getSuccessors(state):
+        successor_position = successor.getPacmanPosition()
+        # if successor_position not in astarData.visited:
+        new_cost = cost + step_cost
+        if successor_position not in astarData.visited or astarData.visited[successor_position] > new_cost:
+            priority = 0.9*new_cost + astar_heuristic(successor_position, astarData.food_position)
+            # priority = bfs_distance(problem, state, astarData.food_position)
+            astarData.queue.push((successor, actions + [action], new_cost), priority)
+        
     return False, None
 
 def astar_heuristic(pacman_position, food_position):
     """ 启发式函数：直接使用曼哈顿距离 """
     return util.manhattanDistance(pacman_position, food_position)
 
+def bfs_distance(problem, start_state, goal):
+    queue = util.Queue()
+    queue.push((start_state, 0))
+    visited = set()
+    visited.add(start_state)
 
-# python pacman.py -l layouts/q1a_openMaze.lay -p SearchAgent -a fn=q1a_solver,prob=q1a_problem --timeout=1
+    while queue:
+        state, dist = queue.pop()
+        pos = state.getPacmanPosition()
+        if pos == goal:
+            return dist
+        for successor, action, step_cost in problem.getSuccessors(state):
+            
+            if successor not in visited:
+                queue.push((successor, dist + 1))
+                visited.add(successor)
+
+    return float('inf')
+
+# python pacman.py -l layouts/q1a_bigMaze.lay -p SearchAgent -a fn=q1a_solver,prob=q1a_problem --timeout=1
