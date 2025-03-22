@@ -78,7 +78,7 @@ def astar_loop_body(problem: q1b_problem, astarData: AStarData):
     
     # if problem.isGoalState(state): # 这句话会变成False，可能是因为pacman在successor那里已经吃到了，自动更新为False
     if pacman_position in astarData.food_positions:
-        print("----------- found one! ------------")
+        # print("----------- found one! ------------")
         return  True, actions
 
     for successor, action, step_cost in problem.getSuccessors(state):

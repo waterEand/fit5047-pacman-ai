@@ -65,6 +65,12 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
     #     return False, None
     
     # astarData.visited.add(pacman_position)
+    # 检查是否访问过并更新 g_values
+    if pacman_position in astarData.g_values:
+        prev_cost = astarData.g_values[pacman_position]
+        if cost > prev_cost:
+            # print("$$$$$")
+            return False, None  # 如果当前路径更长，就不扩展
     astarData.g_values[pacman_position] = cost  # 更新最短路径成本
     
     # Check if the goal is reached
@@ -80,10 +86,10 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
         new_cost = cost + step_cost
         if successor_position not in astarData.g_values or new_cost < astarData.g_values[successor_position]:
         # if successor_position not in astarData.visited:
-            priority = new_cost + astar_heuristic(successor_position, astarData.bfs_distances)
+            astarData.g_values[successor_position] = new_cost
+            priority = 0.1*new_cost + astar_heuristic(successor_position, astarData.bfs_distances)
             # priority = new_cost + astar_heuristic(successor_position, astarData.food_positions)
             astarData.queue.push((successor, actions + [action], new_cost), priority)
-            astarData.g_values[successor_position] = new_cost 
             
     return False, None
 
@@ -95,7 +101,9 @@ def astar_loop_body(problem: q1a_problem, astarData: AStarData):
 def astar_heuristic(pacman_position, bfs_distances):
     # YOUR CODE HERE        
     
-    return bfs_distances.get(pacman_position, float('inf'))  
+    if pacman_position in bfs_distances:
+        return bfs_distances[pacman_position]
+    return min(util.manhattanDistance(pacman_position, food) for food in list(bfs_distances.keys())) 
 
 def precompute_bfs(state, dot_position):
     """
