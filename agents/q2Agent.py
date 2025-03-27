@@ -7,9 +7,6 @@ from logs.search_logger import log_function
 from pacman import GameState
 from util import manhattanDistance
 
-import math
-
-
 def scoreEvaluationFunction(currentGameState):
     """
       This default evaluation function just returns the score of the state.
@@ -21,20 +18,15 @@ def scoreEvaluationFunction(currentGameState):
     return currentGameState.getScore()
 
 class Q2_Agent(Agent):
-
-    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '3'):
-        self.index = 0 # Pacman is always agent index 0
+        
+    def __init__(self, evalFn='scoreEvaluationFunction', depth='3'):
+        self.index = 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
-        # self.temperature = 1.0
-        self.previous_positions = []  # 用于防止走回头路
-        self.previous_actions = []    # 用于检测震荡行为
-        self.memory_length = 4        # 记忆长度
-        
-    # def __init__(self, evalFn='betterEvaluationFunction', depth='3'):
-    #     self.index = 0
-    #     self.evaluationFunction = util.lookup(evalFn, globals())
-    #     self.depth = int(depth)
+        # self added
+        self.previous_positions = []
+        self.previous_actions = []
+        self.memory_length = 6  # 记忆长度设置为6，足够识别重复循环
 
     @log_function
     def getAction(self, gameState: GameState):
@@ -61,30 +53,27 @@ class Q2_Agent(Agent):
         # self.temperature -= 0.005
         # if self.temperature < 0.01:
         #     self.temperature = 0.01
-        best_action, best_value = self.alphaBeta(gameState, depth=self.depth, agentIndex=0, alpha=-float('inf'), beta=float('inf'))
+        best_action, best_value = self.alphaBeta(gameState, depth=2, agentIndex=0, alpha=-float('inf'), beta=float('inf'), evaluationFunction=self.betterEvaluation)
         # best_value, best_action = self.alphaBeta(gameState, self.depth, 0, float("-inf"), float("inf"))
         
-        successor = gameState.generateSuccessor(0, best_action)
-        pos = successor.getPacmanPosition()
-
-        self.previous_positions.append(pos)
+        # 记录 Pacman 行为历史
+        self.previous_positions.append(gameState.getPacmanPosition())
         self.previous_actions.append(best_action)
-
         if len(self.previous_positions) > self.memory_length:
             self.previous_positions.pop(0)
         if len(self.previous_actions) > self.memory_length:
             self.previous_actions.pop(0)
-
+        
         return best_action
 
 
-    def alphaBeta(self, gameState, depth, agentIndex, alpha, beta):
+    def alphaBeta(self, gameState, depth, agentIndex, alpha, beta, evaluationFunction):
         """
         Alpha-Beta Pruning with Minimax.
         """
         # check depth & end of game
         if depth == 0 or gameState.isWin() or gameState.isLose():
-            return None, self.evaluationFunction(gameState)
+            return None, evaluationFunction(gameState)
 
         num_agents = gameState.getNumAgents()
         is_pacman = (agentIndex == 0)
@@ -93,67 +82,159 @@ class Q2_Agent(Agent):
         # best_value = -float('inf') if is_pacman else float('inf')
 
         actions = gameState.getLegalActions(agentIndex)
+        if Directions.STOP in actions:
+            actions.remove(Directions.STOP)  # 不考虑停止动作
         if not actions:
-            return None, self.evaluationFunction(gameState)
+            return None, evaluationFunction(gameState)
         
-        # 随机打乱行动顺序，避免相同分数导致上下循环
-        random.shuffle(actions)
+        # 随机打乱行动顺序，避免相同分数导致上下循环    但是去掉后竟然变好了！！理论上应该不影响啊
+        # 解释：排序是稳定排序 vs 非稳定排序
+
+        # random.shuffle(actions)
+        
+        successor_cache = {}
+        for action in actions:
+            successor = gameState.generateSuccessor(agentIndex, action)
+            successor_cache[action] = successor
+        
+        # actions = sorted(
+        #     actions,
+        #     key=lambda a: evaluationFunction(successor_cache[a]),
+        #     reverse=is_pacman  # Pacman 用 max，Ghost 用 min
+        # )
         # action顺序很重要！
-        if is_pacman:
-            # actions = sorted(
-            #     actions, 
-            #     key=lambda action: self.evaluationFunction(gameState.generateSuccessor(agentIndex, action)),
-            #     # key=lambda a: (self._actionScore(gameState, a), a), 
-            #     reverse=True
-            # )
-            actions = self.rankActions(gameState, actions)
+        # if is_pacman:
+        #     actions = self.rankActions(gameState, actions)
             # pass
         # else:
-            # random.shuffle(actions)
-            # actions = self.rankActions(gameState, actions)
+        #     actions = sorted(actions, key=lambda a: evaluationFunction(gameState.generateSuccessor(agentIndex, a)))
 
         best_value = -float('inf') if is_pacman else float('inf')
         best_action = actions[0] # 默认选择第一个 action
         
         for action in actions:
-            successor = gameState.generateSuccessor(agentIndex, action)
+            successor = successor_cache[action]
 
             next_agent = (agentIndex + 1) % num_agents
             next_depth = depth - 1 if next_agent == 0 else depth
 
-            _, successor_value = self.alphaBeta(successor, next_depth, next_agent, alpha, beta)
+            _, successor_value = self.alphaBeta(successor, next_depth, next_agent, alpha, beta, evaluationFunction)
 
             if is_pacman:
+                # ✅ 加一个立即吃 food / capsule 的奖励
+                if successor.getScore() > gameState.getScore():
+                    successor_value += 50
+                    
                 if successor_value > best_value:
-                    # if action == Directions.STOP:
-                    #     x = (self.temperature - 0.5) * 12
-                    #     s = 1 / (1 + math.exp(-x))
-                    #     reduce_amount = s * 0.9 + 0.1
-                    #     successor_value *= reduce_amount
-                    #     if successor_value > best_value:
-                    #         best_value, best_action = successor_value, action
-                    # else:
-                    #     best_value, best_action = successor_value, action
                     best_value, best_action = successor_value, action
-                if best_value > beta:
+                if best_value > beta: # beta prune
                     break
                 alpha = max(alpha, best_value)
             else:
                 if successor_value < best_value:
                     best_value, best_action = successor_value, action
-                if best_value < alpha:
+                if best_value < alpha: # alpha prune
                     break
                 beta = min(beta, best_value)
             
         return best_action, best_value
     
-    def isOscillating(self, action):
-        if len(self.previous_actions) < 2:
-            return False
-        # 上一动作是前一个的反方向并且和当前动作一样（如：右 左 右）
-        return (self.previous_actions[-1] == Actions.reverseDirection(self.previous_actions[-2]) and
-                action == self.previous_actions[-2])
-    
+    # def isOscillating(self, action):
+    #     if len(self.previous_actions) < 2:
+    #         return False
+    #     # 上一动作是前一个的反方向并且和当前动作一样（如：右 左 右）
+    #     if self.previous_actions[-1] == Actions.reverseDirection(self.previous_actions[-2]) and action == self.previous_actions[-2]:
+    #         return True
+        
+        
+    def betterEvaluation(self, gameState):
+        pacmanPos = gameState.getPacmanPosition()
+        foodGrid = gameState.getFood()
+        food = gameState.getFood().asList()
+        capsules = gameState.getCapsules()
+        ghostStates = gameState.getGhostStates()
+        # ghostPositions = [g.getPosition() for g in ghostStates]
+        scaredTimes = [g.scaredTimer for g in ghostStates]
+        # action = gameState.getPacmanState().configuration.direction
+        walls = gameState.getWalls()
+        score = self.evaluationFunction(gameState)
+        
+        if food:
+            foodDist = findNearestTargetDistance(pacmanPos, foodGrid, walls)
+            if foodDist is not None:
+                score += 100.0 / (foodDist + 1)
+            # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
+            # score += 100.0 / (minFoodDist + 1)
+
+            # food_x = sum(f[0] for f in food) / len(food)
+            # food_y = sum(f[1] for f in food) / len(food)
+            # centroid_dist = util.manhattanDistance(pacmanPos, (food_x, food_y))
+            # score += 5.0 / (centroid_dist + 1)
+
+            # distances = [util.manhattanDistance(pacmanPos, f) for f in food]
+            # avg_dist = sum(distances) / len(distances)
+            # score += 5.0 / (avg_dist + 1)
+
+        if capsules:
+            capsuleGrid = gameState.getWalls().copy()  # 新建空 Grid
+            for (x, y) in gameState.getCapsules():
+                capsuleGrid[x][y] = True
+            capsuleDist = findNearestTargetDistance(pacmanPos, capsuleGrid, walls)
+            if capsuleDist is not None:
+                score += 100.0 / (capsuleDist + 1)
+            # minCapsuleDist = min(util.manhattanDistance(pacmanPos, c) for c in capsules)
+            # score += 100.0 / (minCapsuleDist + 1)
+
+        for ghost, timer in zip(ghostStates, scaredTimes):
+            ghostPos = ghost.getPosition()
+            dist = util.manhattanDistance(pacmanPos, ghostPos)
+            if timer == 0:
+                # Ghost 是危险的
+                ghost_legal = Actions.getLegalNeighbors(ghostPos, gameState.getWalls())
+                if pacmanPos in ghost_legal:
+                    score -= 400  # 可能下一步撞到 Pacman，惩罚
+                if dist < 2:
+                    score -= 800  # 距离太近，超大惩罚
+                elif dist < 5:
+                    score -= (5 - dist) * 6
+            else:
+                # Ghost 是可吃的
+                score += 200 / (dist + 1)
+        
+        # ✅ 震荡惩罚（关键）
+        # 最近N步的位置如果重复，就扣分（尤其是形成循环）
+        # recent_pos = self.previous_positions[-4:]  # 取最近4步
+        # if recent_pos.count(pacmanPos) > 1:
+        #     score -= 5  # 出现重复位置，说明震荡，扣分
+
+        return score
+
+def findNearestTargetDistance(startPos, targetGrid, walls):
+    """
+    BFS：返回从 startPos 到最近目标点的实际步数。
+    targetGrid：可以是 foodGrid，也可以是 capsuleGrid
+    """
+    visited = set()
+    queue = util.Queue()
+    queue.push((startPos, 0))
+
+    while not queue.isEmpty():
+        pos, dist = queue.pop()
+        if pos in visited:
+            continue
+        visited.add(pos)
+
+        x, y = pos
+        if targetGrid[x][y]:  # food / capsule
+            return dist
+
+        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            next_x, next_y = x + dx, y + dy
+            if not walls[next_x][next_y]:
+                queue.push(((next_x, next_y), dist + 1))
+
+    return None 
+
     def rankActions(self, gameState, actions):
         pacman_pos = gameState.getPacmanPosition()
         food_list = gameState.getFood().asList()
@@ -177,23 +258,20 @@ class Q2_Agent(Agent):
                     util.manhattanDistance(successor_pos, food) for food in food_list)
                 score -= closest_food_distance * 5
 
-            if action == Directions.STOP:
-                score -= 100
-
             # if last_action and action == last_action:
             #     score += 3
 
             # 反方向
             if last_action and action == Actions.reverseDirection(last_action):
-                score -= 10
+                score -= 100
 
             # 走回头路
             # if successor_pos in self.previous_positions:
-            #     score -= 10
+            #     score -= 5
 
             # 检测震荡行为
-            if self.isOscillating(action):
-                score -= 30
+            # if self.isOscillating(action):
+            #     score -= 30
 
             # 随机扰动避免评分一致
             score += random.uniform(-0.1, 0.1)
@@ -203,7 +281,7 @@ class Q2_Agent(Agent):
         # 分数高优先，若分数相同，动作顺序固定避免抖动
         ranked_actions.sort(key=lambda x: (-x[0], x[1]))
         return [action for _, action in ranked_actions]
-    
+
 #     def rankActions(self, gameState, actions):
 #         """
 #         Rank actions based on their immediate evaluation function value.
@@ -256,4 +334,4 @@ class Q2_Agent(Agent):
 #         return [action for _, action in ranked_actions]
 
         
-# python pacman.py -l layouts/q2_originalClassic.lay -p Q2_Agent --timeout=30
+# python pacman.py -l layouts/q2_mediumClassic2.lay -p Q2_Agent --timeout=30
