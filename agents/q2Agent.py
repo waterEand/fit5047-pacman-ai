@@ -50,9 +50,6 @@ class Q2_Agent(Agent):
         logger.info('MinimaxAgent')
         "*** YOUR CODE HERE ***"
 
-        # self.temperature -= 0.005
-        # if self.temperature < 0.01:
-        #     self.temperature = 0.01
         best_action, best_value = self.alphaBeta(gameState, depth=2, agentIndex=0, alpha=-float('inf'), beta=float('inf'), evaluationFunction=self.betterEvaluation)
         # best_value, best_action = self.alphaBeta(gameState, self.depth, 0, float("-inf"), float("inf"))
         
@@ -157,6 +154,7 @@ class Q2_Agent(Agent):
         scaredTimes = [g.scaredTimer for g in ghostStates]
         # action = gameState.getPacmanState().configuration.direction
         walls = gameState.getWalls()
+        # 
         score = self.evaluationFunction(gameState)
         
         if food:
@@ -165,15 +163,6 @@ class Q2_Agent(Agent):
                 score += 100.0 / (foodDist + 1)
             # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
             # score += 100.0 / (minFoodDist + 1)
-
-            # food_x = sum(f[0] for f in food) / len(food)
-            # food_y = sum(f[1] for f in food) / len(food)
-            # centroid_dist = util.manhattanDistance(pacmanPos, (food_x, food_y))
-            # score += 5.0 / (centroid_dist + 1)
-
-            # distances = [util.manhattanDistance(pacmanPos, f) for f in food]
-            # avg_dist = sum(distances) / len(distances)
-            # score += 5.0 / (avg_dist + 1)
 
         if capsules:
             capsuleGrid = gameState.getWalls().copy()  # 新建空 Grid
@@ -334,4 +323,4 @@ def findNearestTargetDistance(startPos, targetGrid, walls):
 #         return [action for _, action in ranked_actions]
 
         
-# python pacman.py -l layouts/q2_mediumClassic2.lay -p Q2_Agent --timeout=30
+# python pacman.py -l layouts/q2_trappedClassic.lay -p Q2_Agent --timeout=30

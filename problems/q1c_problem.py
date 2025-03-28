@@ -30,12 +30,16 @@ class q1c_problem:
     @log_function
     def getStartState(self):
         "*** YOUR CODE HERE ***"
-        return self.startingGameState
-
+        # return self.startingGameState
+        
+        position, food_grid = self.startingGameState.getPacmanPosition(), self.startingGameState.getFood()
+        food_positions = frozenset((x, y) for x in range(food_grid.width) for y in range(food_grid.height) if food_grid[x][y])
+        return (position, food_positions)
+        
     @log_function
     def isGoalState(self, state):
         "*** YOUR CODE HERE ***"
-        return state.isWin()
+        return not state[1]
 
     @log_function
     def getSuccessors(self, state):
@@ -50,19 +54,34 @@ class q1c_problem:
          cost of expanding to that successor
         """
         "*** YOUR CODE HERE ***"
+        # successors = []
+        # actions = state.getLegalPacmanActions()
+        
+        # for action in actions:
+        #     successor = state.generatePacmanSuccessor(action)
+        #     successors.append((successor, action, 1))
+        
+        # return successors
+        walls = self.startingGameState.getWalls()
         successors = []
-        actions = state.getLegalPacmanActions()
-        
-        for action in actions:
-            successor = state.generatePacmanSuccessor(action)
-            successors.append((successor, action, 1))
-        
+        position, foods = state
+        x, y = position
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+            next_x, next_y = int(x + dx), int(y + dy)
+            if not walls[next_x][next_y]:
+                new_foods = set(foods)
+                if (next_x, next_y) in new_foods:
+                    new_foods.remove((next_x, next_y))
+                new_foods = frozenset(new_foods)
+                successor = ((next_x, next_y), new_foods)
+                successors.append((successor, action, 1))
         return successors
 
     def getCostOfActions(self, actions):
         """Returns the cost of a particular sequence of actions.  If those actions
         include an illegal move, return inf"""
-        x,y= self.getStartState()[0]
+        x, y= self.getStartState()[0]
         cost = 0
         for action in actions:
             # figure out the next state and see whether it's legal

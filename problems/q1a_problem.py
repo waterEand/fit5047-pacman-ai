@@ -34,15 +34,16 @@ class q1a_problem:
     @log_function
     def getStartState(self):
         "*** YOUR CODE HERE ***"
-        
-        return self.startingGameState
+        # return self.startingGameState
+        return self.startingGameState.getPacmanPosition()
 
 
     @log_function
     def isGoalState(self, state):
         "*** YOUR CODE HERE ***"
         
-        return state.getNumFood() == 0
+        foodList = self.startingGameState.getFood().asList()
+        return foodList[0] == state
 
     @log_function
     def getSuccessors(self, state):
@@ -59,11 +60,21 @@ class q1a_problem:
         # ------------------------------------------
         "*** YOUR CODE HERE ***"
         
+        # successors = []
+        # actions = state.getLegalPacmanActions()
+        
+        # for action in actions:
+        #     successor = state.generatePacmanSuccessor(action)
+        #     successors.append((successor, action, 1))
+        
+        # return successors
+        
+        walls = self.startingGameState.getWalls()
         successors = []
-        actions = state.getLegalPacmanActions()
-        
-        for action in actions:
-            successor = state.generatePacmanSuccessor(action)
-            successors.append((successor, action, 1))
-        
+        x, y = state
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+            next_x, next_y = int(x + dx), int(y + dy)
+            if not walls[next_x][next_y]:
+                successors.append(((next_x, next_y), action, 1))
         return successors
