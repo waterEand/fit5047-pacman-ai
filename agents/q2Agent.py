@@ -54,12 +54,12 @@ class Q2_Agent(Agent):
         # best_value, best_action = self.alphaBeta(gameState, self.depth, 0, float("-inf"), float("inf"))
         
         # 记录 Pacman 行为历史
-        self.previous_positions.append(gameState.getPacmanPosition())
-        self.previous_actions.append(best_action)
-        if len(self.previous_positions) > self.memory_length:
-            self.previous_positions.pop(0)
-        if len(self.previous_actions) > self.memory_length:
-            self.previous_actions.pop(0)
+        # self.previous_positions.append(gameState.getPacmanPosition())
+        # self.previous_actions.append(best_action)
+        # if len(self.previous_positions) > self.memory_length:
+        #     self.previous_positions.pop(0)
+        # if len(self.previous_actions) > self.memory_length:
+        #     self.previous_actions.pop(0)
         
         return best_action
 
@@ -160,7 +160,7 @@ class Q2_Agent(Agent):
         if food:
             foodDist = findNearestTargetDistance(pacmanPos, foodGrid, walls)
             if foodDist is not None:
-                score += 100.0 / (foodDist + 1)
+                score += 120.0 / (foodDist + 1)
             # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
             # score += 100.0 / (minFoodDist + 1)
 
@@ -181,14 +181,14 @@ class Q2_Agent(Agent):
                 # Ghost 是危险的
                 ghost_legal = Actions.getLegalNeighbors(ghostPos, gameState.getWalls())
                 if pacmanPos in ghost_legal:
-                    score -= 400  # 可能下一步撞到 Pacman，惩罚
+                    score -= 800  # 可能下一步撞到 Pacman，惩罚
                 if dist < 2:
-                    score -= 800  # 距离太近，超大惩罚
+                    score -= 400  # 距离太近，超大惩罚
                 elif dist < 5:
                     score -= (5 - dist) * 6
             else:
                 # Ghost 是可吃的
-                score += 200 / (dist + 1)
+                score += 300 / (dist + 1)
         
         # ✅ 震荡惩罚（关键）
         # 最近N步的位置如果重复，就扣分（尤其是形成循环）
@@ -224,52 +224,52 @@ def findNearestTargetDistance(startPos, targetGrid, walls):
 
     return None 
 
-    def rankActions(self, gameState, actions):
-        pacman_pos = gameState.getPacmanPosition()
-        food_list = gameState.getFood().asList()
-        capsule_list = gameState.getCapsules()
-        last_action = gameState.getPacmanState().configuration.direction
+    # def rankActions(self, gameState, actions):
+    #     pacman_pos = gameState.getPacmanPosition()
+    #     food_list = gameState.getFood().asList()
+    #     capsule_list = gameState.getCapsules()
+    #     last_action = gameState.getPacmanState().configuration.direction
 
-        ranked_actions = []
-        for action in actions:
-            successor = gameState.generateSuccessor(0, action)
-            successor_pos = successor.getPacmanPosition()
+    #     ranked_actions = []
+    #     for action in actions:
+    #         successor = gameState.generateSuccessor(0, action)
+    #         successor_pos = successor.getPacmanPosition()
 
-            score = self.evaluationFunction(successor)
+    #         score = self.evaluationFunction(successor)
 
-            if capsule_list:
-                closest_capsule_distance = min(
-                    util.manhattanDistance(successor_pos, capsule) for capsule in capsule_list)
-                score -= closest_capsule_distance * 4
+    #         if capsule_list:
+    #             closest_capsule_distance = min(
+    #                 util.manhattanDistance(successor_pos, capsule) for capsule in capsule_list)
+    #             score -= closest_capsule_distance * 4
 
-            if food_list:
-                closest_food_distance = min(
-                    util.manhattanDistance(successor_pos, food) for food in food_list)
-                score -= closest_food_distance * 5
+    #         if food_list:
+    #             closest_food_distance = min(
+    #                 util.manhattanDistance(successor_pos, food) for food in food_list)
+    #             score -= closest_food_distance * 5
 
-            # if last_action and action == last_action:
-            #     score += 3
+    #         # if last_action and action == last_action:
+    #         #     score += 3
 
-            # 反方向
-            if last_action and action == Actions.reverseDirection(last_action):
-                score -= 100
+    #         # 反方向
+    #         if last_action and action == Actions.reverseDirection(last_action):
+    #             score -= 100
 
-            # 走回头路
-            # if successor_pos in self.previous_positions:
-            #     score -= 5
+    #         # 走回头路
+    #         # if successor_pos in self.previous_positions:
+    #         #     score -= 5
 
-            # 检测震荡行为
-            # if self.isOscillating(action):
-            #     score -= 30
+    #         # 检测震荡行为
+    #         # if self.isOscillating(action):
+    #         #     score -= 30
 
-            # 随机扰动避免评分一致
-            score += random.uniform(-0.1, 0.1)
+    #         # 随机扰动避免评分一致
+    #         score += random.uniform(-0.1, 0.1)
 
-            ranked_actions.append((score, action))
+    #         ranked_actions.append((score, action))
 
-        # 分数高优先，若分数相同，动作顺序固定避免抖动
-        ranked_actions.sort(key=lambda x: (-x[0], x[1]))
-        return [action for _, action in ranked_actions]
+    #     # 分数高优先，若分数相同，动作顺序固定避免抖动
+    #     ranked_actions.sort(key=lambda x: (-x[0], x[1]))
+    #     return [action for _, action in ranked_actions]
 
 #     def rankActions(self, gameState, actions):
 #         """
