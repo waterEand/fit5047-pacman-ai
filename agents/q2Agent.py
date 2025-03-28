@@ -24,9 +24,9 @@ class Q2_Agent(Agent):
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
         # self added
-        self.previous_positions = []
-        self.previous_actions = []
-        self.memory_length = 6  # 记忆长度设置为6，足够识别重复循环
+        # self.previous_positions = []
+        # self.previous_actions = []
+        # self.memory_length = 6  # 记忆长度设置为6，足够识别重复循环
 
     @log_function
     def getAction(self, gameState: GameState):
@@ -119,9 +119,22 @@ class Q2_Agent(Agent):
 
             if is_pacman:
                 # ✅ 加一个立即吃 food / capsule 的奖励
-                if successor.getScore() > gameState.getScore():
-                    successor_value += 50
+                if len(successor.getCapsules()) < len(gameState.getCapsules()):
+                    successor_value += 200
+
+                # 显式判断是否吃到 food
+                if len(successor.getFood().asList()) < len(gameState.getFood().asList()):
+                    successor_value += 60
                     
+                # old_ghosts = gameState.getGhostStates()
+                # new_ghosts = successor.getGhostStates()
+                # for old, new in zip(old_ghosts, new_ghosts):
+                #     if old.scaredTimer > 0 and new.scaredTimer == 0:
+                #         successor_value += 80  # 吃掉可吃的 ghost
+                    
+                if successor.getScore() > gameState.getScore():
+                    successor_value += 40
+                
                 if successor_value > best_value:
                     best_value, best_action = successor_value, action
                 if best_value > beta: # beta prune
@@ -160,35 +173,57 @@ class Q2_Agent(Agent):
         if food:
             foodDist = findNearestTargetDistance(pacmanPos, foodGrid, walls)
             if foodDist is not None:
-                score += 120.0 / (foodDist + 1)
+                score += 60.0 / (foodDist + 1)
             # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
             # score += 100.0 / (minFoodDist + 1)
 
         if capsules:
             capsuleGrid = gameState.getWalls().copy()  # 新建空 Grid
-            for (x, y) in gameState.getCapsules():
+            for (x, y) in capsules:
                 capsuleGrid[x][y] = True
             capsuleDist = findNearestTargetDistance(pacmanPos, capsuleGrid, walls)
+             # 判断是否处于危险中
+            danger_nearby = any(
+                getTrueDistance(pacmanPos, ghost.getPosition(), walls) <= 6
+                for ghost, t in zip(ghostStates, scaredTimes) if t == 0
+            )
+
             if capsuleDist is not None:
-                score += 100.0 / (capsuleDist + 1)
+                if danger_nearby:
+                    score += 60.0 / (capsuleDist + 1)  # 鬼近就更想吃胶囊
+                else:
+                    score += 50.0 / (capsuleDist + 1)   # 鬼远时稍微鼓励
+                    
+            # if capsuleDist is not None:
+            #     score += 50.0 / (capsuleDist + 1)
             # minCapsuleDist = min(util.manhattanDistance(pacmanPos, c) for c in capsules)
             # score += 100.0 / (minCapsuleDist + 1)
 
         for ghost, timer in zip(ghostStates, scaredTimes):
             ghostPos = ghost.getPosition()
-            dist = util.manhattanDistance(pacmanPos, ghostPos)
+
+            # dist = util.manhattanDistance(pacmanPos, ghostPos)
+            dist = getTrueDistance(pacmanPos, ghostPos, walls)
             if timer == 0:
                 # Ghost 是危险的
                 ghost_legal = Actions.getLegalNeighbors(ghostPos, gameState.getWalls())
-                if pacmanPos in ghost_legal:
-                    score -= 800  # 可能下一步撞到 Pacman，惩罚
-                if dist < 2:
-                    score -= 400  # 距离太近，超大惩罚
+                if dist <= 2:
+                    if pacmanPos in ghost_legal:
+                        score -= 800  # 下一步可能撞脸
+                    score -= (3 - dist) * 20  # 超大惩罚（如 1格距 -160）
+                # if pacmanPos in ghost_legal:
+                #     score -= 200  # 可能下一步撞到 Pacman，惩罚
+                # if dist < 2:
+                #     score -= 400  # 距离太近，超大惩罚
                 elif dist < 5:
-                    score -= (5 - dist) * 6
+                    score -= (6 - dist) * 5
+                # elif dist < 10:
+                #     score -= (10 - dist) * 5
             else:
                 # Ghost 是可吃的
-                score += 300 / (dist + 1)
+                if dist <= 5:
+                    score += 200.0 / (dist + 1)  # 吃白鬼奖励
+                # score += 100 / (dist + 1)
         
         # ✅ 震荡惩罚（关键）
         # 最近N步的位置如果重复，就扣分（尤其是形成循环）
@@ -221,8 +256,35 @@ def findNearestTargetDistance(startPos, targetGrid, walls):
             next_x, next_y = x + dx, y + dy
             if not walls[next_x][next_y]:
                 queue.push(((next_x, next_y), dist + 1))
-
     return None 
+
+def getTrueDistance(startPos, endPos, walls):
+    """
+    用 BFS 计算 startPos 到 endPos 的最短路径距离，考虑墙体。
+    """
+    ghost_x, ghost_y = endPos
+    endPos = (int(ghost_x), int(ghost_y))
+    visited = set()
+    queue = util.Queue()
+    queue.push((startPos, 0))
+
+    while not queue.isEmpty():
+        pos, dist = queue.pop()
+        if pos in visited:
+            continue
+        visited.add(pos)
+
+        if pos == endPos:
+            return dist
+
+        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            next_x, next_y = pos[0] + dx, pos[1] + dy
+            if not walls[next_x][next_y]:
+                queue.push(((next_x, next_y), dist + 1))
+        
+    print("Error: no path found!\n", startPos, endPos)
+        
+    return None  # 到不了
 
     # def rankActions(self, gameState, actions):
     #     pacman_pos = gameState.getPacmanPosition()
@@ -323,4 +385,4 @@ def findNearestTargetDistance(startPos, targetGrid, walls):
 #         return [action for _, action in ranked_actions]
 
         
-# python pacman.py -l layouts/q2_trappedClassic.lay -p Q2_Agent --timeout=30
+# python pacman.py -l layouts/q2_dangerClassic.lay -p Q2_Agent --timeout=30
