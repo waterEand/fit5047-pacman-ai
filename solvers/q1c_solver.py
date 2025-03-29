@@ -114,7 +114,7 @@ def q1c_solver(problem: q1c_problem):
     time_limit = 9.5 
 
     return greedy_bfs_solver(problem, start_time, time_limit)
-    # return fast_greedy_bfs(problem, start_time, time_limit)
+    # return eat_in_chunks_solver(problem, start_time, time_limit)
 
 def greedy_bfs_solver(problem: q1c_problem, start_time, time_limit):
     start_state = problem.getStartState()
@@ -169,6 +169,74 @@ def bfs_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
 
     return None, None
 
+# def bfs_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
+            
+#     queue = util.Queue()
+#     visited = set()
+#     queue.push((start_pos, []))
+#     visited.add(start_pos)
+
+#     first_food_path = None
+#     first_food_pos = None
+
+#     while not queue.isEmpty():
+#         cur_pos, path = queue.pop()
+
+#         if cur_pos in food_set:
+#             if is_dead_end(cur_pos, walls, wall_width, wall_height):
+#                 return path, cur_pos  # ✅ 优先选择死角上的 food
+#             if first_food_path is None:
+#                 first_food_path = path
+#                 first_food_pos = cur_pos
+
+#         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+#             dx, dy = Actions.directionToVector(direction)
+#             next_pos = (int(cur_pos[0] + dx), int(cur_pos[1] + dy))
+
+#             if not (0 <= next_pos[0] < wall_width and 0 <= next_pos[1] < wall_height):
+#                 continue
+#             if walls[next_pos[0]][next_pos[1]]:
+#                 continue
+#             if next_pos not in visited:
+#                 visited.add(next_pos)
+#                 queue.push((next_pos, path + [direction]))
+
+#     # 如果 BFS 结束都没遇到死角上的 food，就返回第一个遇到的普通 food
+#     return first_food_path, first_food_pos
+
+def is_dead_end(pos, walls, width, height):
+    count = 0
+    for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+        dx, dy = Actions.directionToVector(direction)
+        nx, ny = int(pos[0] + dx), int(pos[1] + dy)
+        if 0 <= nx < width and 0 <= ny < height and not walls[nx][ny]:
+            count += 1
+    return count == 1
+
+def bfs_path(start, goal, walls, width, height):
+    """返回从 start 到 goal 的动作序列"""
+    queue = util.Queue()
+    visited = set()
+    queue.push((start, []))
+    visited.add(start)
+
+    while not queue.isEmpty():
+        pos, path = queue.pop()
+        if pos == goal:
+            return path
+
+        for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(direction)
+            next_pos = (int(pos[0] + dx), int(pos[1] + dy))
+            if not (0 <= next_pos[0] < width and 0 <= next_pos[1] < height):
+                continue
+            if walls[next_pos[0]][next_pos[1]]:
+                continue
+            if next_pos not in visited:
+                visited.add(next_pos)
+                queue.push((next_pos, path + [direction]))
+    return None
+
 # def depth_first_search(problem, start_time, time_limit):
 #     """ 时间够快 但是cost太大。。。 """
     
@@ -212,4 +280,4 @@ def bfs_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
     
 #     return best_solution  # Return best found solution within time limit
 
-# python pacman.py -l layouts/q1c_closed.lay -p SearchAgent -a fn=q1c_solver,prob=q1c_problem --timeout=10
+# python pacman.py -l layouts/q1c_mediumSearch.lay -p SearchAgent -a fn=q1c_solver,prob=q1c_problem --timeout=10

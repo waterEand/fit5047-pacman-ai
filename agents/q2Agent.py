@@ -118,13 +118,13 @@ class Q2_Agent(Agent):
             _, successor_value = self.alphaBeta(successor, next_depth, next_agent, alpha, beta, evaluationFunction)
 
             if is_pacman:
-                # ✅ 加一个立即吃 food / capsule 的奖励
-                if len(successor.getCapsules()) < len(gameState.getCapsules()):
-                    successor_value += 200
+                # # 加一个立即吃 food / capsule 的奖励
+                # if len(successor.getCapsules()) < len(gameState.getCapsules()):
+                #     successor_value += 80
 
-                # 显式判断是否吃到 food
-                if len(successor.getFood().asList()) < len(gameState.getFood().asList()):
-                    successor_value += 60
+                # # 显式判断是否吃到 food
+                # if len(successor.getFood().asList()) < len(gameState.getFood().asList()):
+                #     successor_value += 50
                     
                 # old_ghosts = gameState.getGhostStates()
                 # new_ghosts = successor.getGhostStates()
@@ -173,7 +173,7 @@ class Q2_Agent(Agent):
         if food:
             foodDist = findNearestTargetDistance(pacmanPos, foodGrid, walls)
             if foodDist is not None:
-                score += 60.0 / (foodDist + 1)
+                score += 120.0 / (foodDist + 1)
             # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
             # score += 100.0 / (minFoodDist + 1)
 
@@ -182,20 +182,20 @@ class Q2_Agent(Agent):
             for (x, y) in capsules:
                 capsuleGrid[x][y] = True
             capsuleDist = findNearestTargetDistance(pacmanPos, capsuleGrid, walls)
-             # 判断是否处于危险中
-            danger_nearby = any(
-                getTrueDistance(pacmanPos, ghost.getPosition(), walls) <= 6
-                for ghost, t in zip(ghostStates, scaredTimes) if t == 0
-            )
+            # # 判断是否处于危险中
+            # danger_nearby = any(
+            #     getTrueDistance(pacmanPos, ghost.getPosition(), walls) <= 6
+            #     for ghost, t in zip(ghostStates, scaredTimes) if t == 0
+            # )
 
-            if capsuleDist is not None:
-                if danger_nearby:
-                    score += 60.0 / (capsuleDist + 1)  # 鬼近就更想吃胶囊
-                else:
-                    score += 50.0 / (capsuleDist + 1)   # 鬼远时稍微鼓励
-                    
             # if capsuleDist is not None:
-            #     score += 50.0 / (capsuleDist + 1)
+            #     if danger_nearby:
+            #         score += 60.0 / (capsuleDist + 1)  # 鬼近就更想吃胶囊
+            #     else:
+            #         score += 50.0 / (capsuleDist + 1)   # 鬼远时稍微鼓励
+                    
+            if capsuleDist is not None:
+                score += 100.0 / (capsuleDist + 1)
             # minCapsuleDist = min(util.manhattanDistance(pacmanPos, c) for c in capsules)
             # score += 100.0 / (minCapsuleDist + 1)
 
@@ -207,23 +207,24 @@ class Q2_Agent(Agent):
             if timer == 0:
                 # Ghost 是危险的
                 ghost_legal = Actions.getLegalNeighbors(ghostPos, gameState.getWalls())
-                if dist <= 2:
-                    if pacmanPos in ghost_legal:
-                        score -= 800  # 下一步可能撞脸
-                    score -= (3 - dist) * 20  # 超大惩罚（如 1格距 -160）
-                # if pacmanPos in ghost_legal:
-                #     score -= 200  # 可能下一步撞到 Pacman，惩罚
-                # if dist < 2:
-                #     score -= 400  # 距离太近，超大惩罚
+                # if dist <= 2:
+                #     if pacmanPos in ghost_legal:
+                #         score -= 800  # 下一步可能撞脸
+                #     else:
+                #         score -= (3 - dist) * 200  # 超大惩罚（如 1格距 -160）
+                if pacmanPos in ghost_legal:
+                    score -= 800  # 可能下一步撞到 Pacman，惩罚
+                if dist < 2:
+                    score -= 400  # 距离太近，超大惩罚
                 elif dist < 5:
-                    score -= (6 - dist) * 5
+                    score -= (5 - dist) * 6
                 # elif dist < 10:
                 #     score -= (10 - dist) * 5
             else:
                 # Ghost 是可吃的
-                if dist <= 5:
-                    score += 200.0 / (dist + 1)  # 吃白鬼奖励
-                # score += 100 / (dist + 1)
+                # if dist <= 5:
+                #     score += 200.0 / (dist + 1)  # 吃白鬼奖励
+                score += 350 / (dist + 1)
         
         # ✅ 震荡惩罚（关键）
         # 最近N步的位置如果重复，就扣分（尤其是形成循环）
