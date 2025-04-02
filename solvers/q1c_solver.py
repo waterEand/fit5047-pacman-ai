@@ -114,6 +114,7 @@ def q1c_solver(problem: q1c_problem):
     time_limit = 9.5 
 
     return greedy_bfs_solver(problem, start_time, time_limit)
+    # return astar_search(problem, compute_sum, start_time, time_limit)
     # return eat_in_chunks_solver(problem, start_time, time_limit)
 
 def greedy_bfs_solver(problem: q1c_problem, start_time, time_limit):
@@ -168,6 +169,44 @@ def bfs_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
                 queue.push((next_pos, path + [direction]))
 
     return None, None
+
+# import heapq
+
+# def a_star_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
+#     open_list = []
+#     heapq.heappush(open_list, (0, 0, start_pos, []))  # (f, g, position, path)
+#     visited = set()
+
+#     def heuristic(pos):
+#         # 使用曼哈顿距离到最近食物
+#         return min(abs(pos[0]-fx) + abs(pos[1]-fy) for (fx, fy) in food_set)
+
+#     while open_list:
+#         f, g, cur_pos, path = heapq.heappop(open_list)
+#         if cur_pos in visited:
+#             continue
+#         visited.add(cur_pos)
+
+#         if cur_pos in food_set:
+#             return path, cur_pos
+
+#         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+#             dx, dy = Actions.directionToVector(direction)
+#             next_pos = (int(cur_pos[0] + dx), int(cur_pos[1] + dy))
+
+#             if not (0 <= next_pos[0] < wall_width and 0 <= next_pos[1] < wall_height):
+#                 continue
+#             if walls[next_pos[0]][next_pos[1]]:
+#                 continue
+#             if next_pos in visited:
+#                 continue
+
+#             new_path = path + [direction]
+#             new_g = g + 1
+#             new_f = new_g + heuristic(next_pos)
+#             heapq.heappush(open_list, (new_f, new_g, next_pos, new_path))
+
+#     return None, None
 
 # def bfs_to_closest_food(start_pos, food_set, walls, wall_width, wall_height):
             

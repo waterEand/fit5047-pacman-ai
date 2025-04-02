@@ -27,6 +27,7 @@ class Q2_Agent(Agent):
         # self.previous_positions = []
         # self.previous_actions = []
         # self.memory_length = 6  # 记忆长度设置为6，足够识别重复循环
+        self.load_config()  # 加载参数
 
     @log_function
     def getAction(self, gameState: GameState):
@@ -133,7 +134,9 @@ class Q2_Agent(Agent):
                 #         successor_value += 80  # 吃掉可吃的 ghost
                     
                 if successor.getScore() > gameState.getScore():
-                    successor_value += 40
+                    successor_value += self.immediate_reward
+                elif gameState.getScore() - successor.getScore() > 10:
+                    successor_value -= self.immediate_reward * 1000
                 
                 if successor_value > best_value:
                     best_value, best_action = successor_value, action
@@ -173,7 +176,7 @@ class Q2_Agent(Agent):
         if food:
             foodDist = findNearestTargetDistance(pacmanPos, foodGrid, walls)
             if foodDist is not None:
-                score += 120.0 / (foodDist + 1)
+                score += self.food_weight / (foodDist + 1)
             # minFoodDist = min(util.manhattanDistance(pacmanPos, f) for f in food)
             # score += 100.0 / (minFoodDist + 1)
 
@@ -195,7 +198,7 @@ class Q2_Agent(Agent):
             #         score += 50.0 / (capsuleDist + 1)   # 鬼远时稍微鼓励
                     
             if capsuleDist is not None:
-                score += 100.0 / (capsuleDist + 1)
+                score += self.capsule_weight / (capsuleDist + 1)
             # minCapsuleDist = min(util.manhattanDistance(pacmanPos, c) for c in capsules)
             # score += 100.0 / (minCapsuleDist + 1)
 
@@ -206,6 +209,7 @@ class Q2_Agent(Agent):
             dist = getTrueDistance(pacmanPos, ghostPos, walls)
             if timer == 0:
                 # Ghost 是危险的
+                
                 ghost_legal = Actions.getLegalNeighbors(ghostPos, gameState.getWalls())
                 # if dist <= 2:
                 #     if pacmanPos in ghost_legal:
@@ -213,18 +217,20 @@ class Q2_Agent(Agent):
                 #     else:
                 #         score -= (3 - dist) * 200  # 超大惩罚（如 1格距 -160）
                 if pacmanPos in ghost_legal:
-                    score -= 800  # 可能下一步撞到 Pacman，惩罚
-                if dist < 2:
-                    score -= 400  # 距离太近，超大惩罚
-                elif dist < 5:
-                    score -= (5 - dist) * 6
+                    score -= self.ghost_close_penalty * 2  # 可能下一步撞到 Pacman，惩罚
+                # if dist < 2:
+                #     score -= self.ghost_close_penalty # 距离太近，超大惩罚
+                # elif dist < 5:
+                #     score -= (6 - dist) ** 3
                 # elif dist < 10:
                 #     score -= (10 - dist) * 5
+                elif dist < 5:
+                    score -= (6 - dist) * 4
             else:
                 # Ghost 是可吃的
                 # if dist <= 5:
                 #     score += 200.0 / (dist + 1)  # 吃白鬼奖励
-                score += 350 / (dist + 1)
+                score += self.scared_ghost_reward / (dist + 1)
         
         # ✅ 震荡惩罚（关键）
         # 最近N步的位置如果重复，就扣分（尤其是形成循环）
@@ -233,7 +239,29 @@ class Q2_Agent(Agent):
         #     score -= 5  # 出现重复位置，说明震荡，扣分
 
         return score
-
+    
+    def load_config(self):
+        # try:
+        #     with open("agent_config.txt", "r") as f:
+        #         content = f.read()
+        #     kvs = dict(x.split("=") for x in content.strip().split("_"))
+        #     self.food_weight = float(kvs.get("food_weight", 120))
+        #     self.capsule_weight = float(kvs.get("capsule_weight", 100))
+        #     self.ghost_close_penalty = float(kvs.get("ghost_close_penalty", 400))
+        #     self.scared_ghost_reward = float(kvs.get("scared_ghost_reward", 350))
+        #     self.immediate_reward = float(kvs.get("immediate_reward", 60))
+        # except:
+        self.food_weight = 110.24 # 120
+        self.capsule_weight = 105.41 # 100
+        self.ghost_close_penalty = 118.5 # 400
+        self.scared_ghost_reward = 315.7 # 200
+        self.immediate_reward = 40 # 60
+        # self.food_weight = 120
+        # self.capsule_weight = 100
+        # self.ghost_close_penalty = 400
+        # self.scared_ghost_reward = 200
+        # self.immediate_reward = 60 # 60
+        
 def findNearestTargetDistance(startPos, targetGrid, walls):
     """
     BFS：返回从 startPos 到最近目标点的实际步数。
